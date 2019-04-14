@@ -1,0 +1,2 @@
+GET     /users       controllers.IndexController.getUsers
+POST    /users       controllers.IndexController.addUser
