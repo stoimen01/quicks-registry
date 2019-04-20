@@ -10,4 +10,7 @@ libraryDependencies += guice
 libraryDependencies += jdbc
 libraryDependencies += evolutions
 
+libraryDependencies += "org.mindrot" % "jbcrypt" % "0.4"
+libraryDependencies += "com.nimbusds" % "nimbus-jose-jwt" % "6.0"
+
 libraryDependencies += "org.postgresql" % "postgresql" % "42.2.5"
