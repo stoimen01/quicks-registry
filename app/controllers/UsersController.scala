@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.gen._
 import com.nimbusds.jwt._
 import javax.inject._
 import play.api.db.Database
+import play.api.libs.json.Reads
 import play.api.mvc.{AnyContent, _}
 
 import scala.concurrent.Future
@@ -62,33 +63,61 @@ class UsersController @Inject
         })
   }
 
-  def invite: Action[Invitation] = Action.async(parse.json[Invitation]) { request =>
+  def invite: Action[Invitation] = authAction { request =>
 
-      val invitation = request.body
+    val userId = request.principal.id
+    val friendId = UUID.fromString(request.body.id)
 
-      val auth = request.headers.get(AUTHORIZATION).get
-
-      val signedJWT = SignedJWT.parse(auth)
-
-      val verifier = new RSASSAVerifier(rsaPublicJWK)
-
-      if (signedJWT.verify(verifier)) {
-
-        val user_id = UUID.fromString(signedJWT.getJWTClaimsSet.getStringClaim("id"))
-        val friend_id = UUID.fromString(invitation.id)
-
-        usersService.addInvitation(user_id, friend_id, invitation.msg)
-            .map(_ => Ok("asd"))
-
-      } else {
-        Future.successful(BadRequest(s"invalid token ! $auth"))
-      }
+    usersService.addInvitation(userId, friendId, request.body.msg)
+        .map(_ => Ok("Invitation success !"))
   }
 
-  def acceptInvite = TODO
+  def acceptInvitation: Action[InvitationAnswer] = authAction { request =>
+
+    // recipient wants to accept invitation from sender
+    val recipient = request.principal.id
+    val sender = UUID.fromString(request.body.id)
+
+    usersService.acceptInvitation(recipient, sender)
+        .map(_ => Ok("Happy friendship !"))
+  }
+
+  def rejectInvitation: Action[InvitationAnswer] = authAction { request =>
+
+    // recipient wants to reject invitation from sender
+    val recipient = request.principal.id
+    val sender = UUID.fromString(request.body.id)
+
+    usersService.rejectInvitation(recipient, sender)
+      .map(_ => Ok("Happy friendship !"))
+  }
 
   def getToken: Action[AnyContent] = Action { request =>
     Ok(rsaPublicJWK.toJSONObject.toJSONString)
+  }
+
+  case class Principal(id: UUID)
+
+  case class AuthRequest[A](principal: Principal, request: Request[A])
+    extends WrappedRequest[A](request)
+
+  def authAction[T](block: AuthRequest[T] => Future[Result])
+                   (implicit reader: Reads[T]): Action[T] = Action.async(parse.json[T]) { request =>
+
+    val token = request.headers.get(AUTHORIZATION).get
+
+    val signedJWT = SignedJWT.parse(token)
+
+    val verifier = new RSASSAVerifier(rsaPublicJWK)
+
+    if (signedJWT.verify(verifier)) {
+      val userId = UUID.fromString(signedJWT.getJWTClaimsSet.getStringClaim("id"))
+      val principal = Principal(userId)
+      val authRequest = new AuthRequest[T](principal, request)
+      block(authRequest)
+    } else {
+      Future.successful(BadRequest("Invalid token !"))
+    }
   }
 
 }

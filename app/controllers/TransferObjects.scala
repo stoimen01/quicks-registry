@@ -16,3 +16,8 @@ case class Invitation(id: String, msg: String)
 object Invitation {
   implicit val invitationReads: Reads[Invitation] = Json.reads[Invitation]
 }
+
+case class InvitationAnswer(id: String)
+object InvitationAnswer {
+  implicit val invitationAnswerReads: Reads[InvitationAnswer] = Json.reads[InvitationAnswer]
+}

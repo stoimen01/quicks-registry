@@ -2,4 +2,5 @@ GET     /token              controllers.UsersController.getToken
 POST    /users              controllers.UsersController.register
 POST    /login              controllers.UsersController.login
 POST    /invite             controllers.UsersController.invite
-POST    /invite/accept      controllers.UsersController.acceptInvite
+POST    /invite/accept      controllers.UsersController.acceptInvitation
+POST    /invite/reject      controllers.UsersController.rejectInvitation

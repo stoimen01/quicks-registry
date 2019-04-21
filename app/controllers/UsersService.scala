@@ -33,10 +33,17 @@ class UsersService @Inject()(usersRepo: UsersRepository) {
       })
   }
 
-  def addInvitation(from: UUID, to: UUID, msg: String): Future[Unit] = {
-    usersRepo.addInvitation(from, to, msg)
+  def addInvitation(sender: UUID, recipient: UUID, msg: String): Future[Unit] = {
+    usersRepo.addInvitation(sender, recipient, msg)
   }
 
+  def acceptInvitation(recipient: UUID, sender: UUID): Future[Unit] = {
+    usersRepo.addFriendship(recipient, sender)
+  }
+
+  def rejectInvitation(recipient: UUID, sender: UUID): Future[Unit] = {
+    usersRepo.setInvitationRejected(recipient, sender)
+  }
 
 
 }
