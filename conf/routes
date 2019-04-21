@@ -1,4 +1,5 @@
-GET     /token       controllers.IndexController.getToken
-GET     /users       controllers.IndexController.getUserData
-POST    /users       controllers.IndexController.register
-POST    /login       controllers.IndexController.login
+GET     /token              controllers.UsersController.getToken
+POST    /users              controllers.UsersController.register
+POST    /login              controllers.UsersController.login
+POST    /invite             controllers.UsersController.invite
+POST    /invite/accept      controllers.UsersController.acceptInvite

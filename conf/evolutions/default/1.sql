@@ -7,7 +7,7 @@ CREATE TYPE STATUS AS ENUM ('CREATED', 'CONFIRMED');
 
 CREATE TABLE users (
     id UUID PRIMARY KEY ,
-    deleted BOOLEAN NOT NULL,
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at_utc TIMESTAMP NOT NULL ,
     time_zone TEXT NOT NULL ,
     email TEXT UNIQUE NOT NULL  ,
@@ -18,9 +18,22 @@ CREATE TABLE users (
     status STATUS NOT NULL
 );
 
+CREATE TABLE friends (
+    user_id UUID REFERENCES users,
+    friend_id UUID REFERENCES users,
+    PRIMARY KEY (user_id, friend_id)
+);
+
+CREATE TABLE invitations (
+    from_user UUID REFERENCES users,
+    to_user UUID REFERENCES users,
+    message TEXT DEFAULT '',
+    PRIMARY KEY (from_user, to_user)
+);
+
 CREATE TABLE devices (
     id UUID PRIMARY KEY ,
-    deleted BOOLEAN,
+    deleted BOOLEAN DEFAULT FALSE,
     created_at_utc TIMESTAMP NOT NULL ,
     time_zone TEXT NOT NULL ,
     created_by UUID REFERENCES users,
@@ -41,8 +54,12 @@ CREATE TABLE device_guests (
 );
 
 -- !Downs
-
-DROP TABLE users;
-DROP TABLE devices;
 DROP TABLE device_owners;
 DROP TABLE device_guests;
+DROP TABLE devices;
+DROP TABLE friends;
+DROP TABLE invitations;
+DROP TABLE users;
+
+DROP TYPE PRIVILEGE;
+DROP TYPE STATUS;
