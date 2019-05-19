@@ -10,10 +10,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class UserInfo(id: UUID, passwordHash: String)
 
+case class Device(id: UUID, name: String, secret: UUID)
+
 @Singleton
 class UsersService @Inject()(usersRepo: UsersRepository) {
 
-  def addUser(email: String, username: String, password: String): Future[Boolean] = {
+  def addUser(email: String, username: String, password: String): Future[Option[UUID]] = {
     usersRepo.addUser(email, username, password)
   }
 
@@ -43,6 +45,10 @@ class UsersService @Inject()(usersRepo: UsersRepository) {
 
   def rejectInvitation(recipient: UUID, sender: UUID): Future[Unit] = {
     usersRepo.setInvitationRejected(recipient, sender)
+  }
+
+  def createDevice(owner: UUID, name: String): Future[Option[Device]] = {
+    usersRepo.addDevice(owner, name)
   }
 
 

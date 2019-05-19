@@ -1,5 +1,6 @@
 package controllers
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.{Date, UUID}
 
 import com.nimbusds.jose._
@@ -8,7 +9,7 @@ import com.nimbusds.jose.jwk.gen._
 import com.nimbusds.jwt._
 import javax.inject._
 import play.api.db.Database
-import play.api.libs.json.Reads
+import play.api.libs.json.{Json, Reads}
 import play.api.mvc.{AnyContent, _}
 
 import scala.concurrent.Future
@@ -23,16 +24,26 @@ class UsersController @Inject
 
   private val signer = new RSASSASigner(rsaJWK)
 
+  private val map = new ConcurrentHashMap[UUID, UUID]()
+
+
   def register: Action[User] = Action.async(parse.json[User]) { request =>
 
     val user = request.body
 
     usersService.addUser(user.email, user.username, user.password)
-      .map(isAdded =>
-        if (isAdded) Ok("Cool")
-        else BadRequest("Nooo")
+      .map(usrIdOpt =>
+        usrIdOpt
+          .map(usrId => {
+            val wsId = UUID.randomUUID()
+            map.put(wsId, usrId)
+            val response = WelcomeResponse(tokenOf(usrId), wsId.toString)
+            Ok(Json.toJson(response))
+          })
+          .getOrElse(InternalServerError)
       )
   }
+
 
   def login: Action[Credentials] = Action.async(parse.json[Credentials]) { request =>
 
@@ -42,26 +53,15 @@ class UsersController @Inject
         .map(usrIdOpt => {
           usrIdOpt
             .map(usrId => {
-
-              val claimsSet = new JWTClaimsSet.Builder()
-                .claim("id", usrId.toString)
-                .expirationTime(new Date(new Date().getTime + 600 * 1000))
-                .build
-
-              val signedJWT = new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK.getKeyID).build(),
-                claimsSet
-              )
-
-              signedJWT.sign(signer)
-
-              val serialized = signedJWT.serialize()
-
-              Ok(serialized)
+              val wsId = UUID.randomUUID()
+              map.put(wsId, usrId)
+              val response = WelcomeResponse(tokenOf(usrId), wsId.toString)
+              Ok(Json.toJson(response))
             })
             .getOrElse(BadRequest("Wrong email"))
         })
   }
+
 
   def invite: Action[Invitation] = authAction { request =>
 
@@ -71,6 +71,7 @@ class UsersController @Inject
     usersService.addInvitation(userId, friendId, request.body.msg)
         .map(_ => Ok("Invitation success !"))
   }
+
 
   def acceptInvitation: Action[InvitationAnswer] = authAction { request =>
 
@@ -82,6 +83,7 @@ class UsersController @Inject
         .map(_ => Ok("Happy friendship !"))
   }
 
+
   def rejectInvitation: Action[InvitationAnswer] = authAction { request =>
 
     // recipient wants to reject invitation from sender
@@ -92,9 +94,27 @@ class UsersController @Inject
       .map(_ => Ok("Happy friendship !"))
   }
 
+
   def getToken: Action[AnyContent] = Action { request =>
     Ok(rsaPublicJWK.toJSONObject.toJSONString)
   }
+
+
+  def createDevice: Action[CreateDeviceRequest] = authAction { request =>
+    val creator = request.principal.id
+    usersService.createDevice(creator, request.body.name)
+      .map(deviceOpt => {
+        deviceOpt
+          .map(d => {
+            val response = CreateDeviceResponse(d.id.toString, d.secret.toString)
+            Ok(Json.toJson(response))
+          })
+          .getOrElse(BadRequest("Bad Data"))
+      })
+  }
+
+
+
 
   case class Principal(id: UUID)
 
@@ -118,6 +138,22 @@ class UsersController @Inject
     } else {
       Future.successful(BadRequest("Invalid token !"))
     }
+  }
+
+  def tokenOf(id: UUID): String = {
+    val claimsSet = new JWTClaimsSet.Builder()
+      .claim("id", id.toString)
+      .expirationTime(new Date(new Date().getTime + 600 * 1000))
+      .build
+
+    val signedJWT = new SignedJWT(
+      new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK.getKeyID).build(),
+      claimsSet
+    )
+
+    signedJWT.sign(signer)
+
+    signedJWT.serialize()
   }
 
 }

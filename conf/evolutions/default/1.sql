@@ -1,5 +1,3 @@
--- my_first_table schema
-
 -- !Ups
 
 CREATE TYPE USER_PRIVILEGE AS ENUM ('MASTER', 'ADMIN', 'USER');
@@ -23,15 +21,15 @@ CREATE TABLE friends (
     user_id UUID REFERENCES users,
     friend_id UUID REFERENCES users,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at_utc TIMESTAMP NOT NULL ,
-    time_zone TEXT NOT NULL ,
+    created_at_utc TIMESTAMP NOT NULL,
+    time_zone TEXT NOT NULL,
     PRIMARY KEY (user_id, friend_id)
 );
 
 CREATE TABLE invitations (
     from_user UUID REFERENCES users,
     to_user UUID REFERENCES users,
-    created_at_utc TIMESTAMP NOT NULL ,
+    created_at_utc TIMESTAMP NOT NULL,
     time_zone TEXT NOT NULL,
     message TEXT DEFAULT '',
     status INVITATION_STATUS DEFAULT 'WAITING',
@@ -41,17 +39,11 @@ CREATE TABLE invitations (
 CREATE TABLE devices (
     id UUID PRIMARY KEY ,
     deleted BOOLEAN DEFAULT FALSE,
-    created_at_utc TIMESTAMP NOT NULL ,
-    time_zone TEXT NOT NULL ,
-    created_by UUID REFERENCES users,
-    password_hash TEXT NOT NULL ,
-    password_salt TEXT NOT NULL
-);
-
-CREATE TABLE device_owners (
-    device_id UUID REFERENCES devices,
-    user_id UUID REFERENCES users,
-    PRIMARY KEY (device_id)
+    created_at_utc TIMESTAMP NOT NULL,
+    time_zone TEXT NOT NULL,
+    name TEXT NOT NULL,
+    owner UUID REFERENCES users,
+    secret UUID NOT NULL
 );
 
 CREATE TABLE device_guests (
@@ -61,7 +53,6 @@ CREATE TABLE device_guests (
 );
 
 -- !Downs
-DROP TABLE device_owners;
 DROP TABLE device_guests;
 DROP TABLE devices;
 DROP TABLE friends;

@@ -1,6 +1,6 @@
 package controllers
 
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{Json, Reads, Writes}
 
 case class User(email: String, username: String, password: String)
 object User {
@@ -20,4 +20,19 @@ object Invitation {
 case class InvitationAnswer(id: String)
 object InvitationAnswer {
   implicit val invitationAnswerReads: Reads[InvitationAnswer] = Json.reads[InvitationAnswer]
+}
+
+case class CreateDeviceRequest(name: String)
+object CreateDeviceRequest {
+  implicit val invitationAnswerReads: Reads[CreateDeviceRequest] = Json.reads[CreateDeviceRequest]
+}
+
+case class CreateDeviceResponse(id: String, secret: String)
+object CreateDeviceResponse {
+  implicit val invitationAnswerReads: Writes[CreateDeviceResponse] = Json.writes[CreateDeviceResponse]
+}
+
+case class WelcomeResponse(token: String, wsUrl: String)
+object WelcomeResponse {
+  implicit val invitationAnswerReads: Writes[WelcomeResponse] = Json.writes[WelcomeResponse]
 }

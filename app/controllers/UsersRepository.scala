@@ -13,7 +13,7 @@ import scala.concurrent.Future
 class UsersRepository @Inject()(db: Database)
                                (implicit ec: DatabaseExecutionContext) {
 
-  def addUser(email: String, username: String, password: String) : Future[Boolean] = Future {
+  def addUser(email: String, username: String, password: String) : Future[Option[UUID]] = Future {
 
     val conn = db.getConnection()
 
@@ -23,7 +23,7 @@ class UsersRepository @Inject()(db: Database)
       val rs = stm1.executeQuery(s"SELECT * FROM users WHERE email='$email'")
 
       if (rs.next()) {
-        false
+        Option.empty
       } else {
 
         val SQL = "INSERT INTO users(id, created_at_utc, time_zone, email, username, password_hash, password_salt, privilege, status)" +
@@ -52,7 +52,8 @@ class UsersRepository @Inject()(db: Database)
         stmt.executeUpdate()
 
         stmt.close()
-        true
+
+        Option.apply(uuid)
       }
 
     } finally {
@@ -168,6 +169,34 @@ class UsersRepository @Inject()(db: Database)
 
       Unit
 
+    }
+
+  }
+
+  def addDevice(owner: UUID, name: String): Future[Option[Device]] = Future {
+    db.withConnection { conn =>
+
+      val SQL = "INSERT INTO devices(id, created_at_utc, time_zone, name, owner, secret)" +
+        " VALUES (?, ?, ?, ?, ?, ?)"
+
+      val stmt = conn.prepareStatement(SQL)
+      val uuid = UUID.randomUUID()
+      val createdAt = LocalDateTime.now()
+      val timeZone = ZoneId.systemDefault().toString
+      val secret = UUID.randomUUID()
+
+      stmt.setObject(1, uuid)
+      stmt.setObject(2, createdAt)
+      stmt.setString(3, timeZone)
+      stmt.setString(4, name)
+      stmt.setObject(5, owner)
+      stmt.setObject(6, secret)
+
+      stmt.executeUpdate()
+
+      stmt.close()
+
+      Option.apply(Device(uuid, name, secret))
     }
 
   }
